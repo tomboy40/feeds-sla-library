@@ -1,0 +1,45 @@
+INSERT INTO interfaces (
+    id,
+    name,
+    sender_app_id,
+    sender_app_name,
+    receiver_app_id,
+    receiver_app_name,
+    transfer_type,
+    frequency,
+    product_type,
+    entity,
+    sla,
+    impact,
+    status
+) VALUES 
+(
+    'INT001',
+    'Customer Data Sync',
+    'CRM001',
+    'Customer Relationship Manager',
+    'BIL001',
+    'Billing System',
+    'REST API',
+    'Real-time',
+    'Customer Data',
+    'Customer',
+    '99.9%',
+    'High',
+    'active'
+),
+(
+    'INT002',
+    'Order Processing',
+    'ERP001',
+    'Enterprise Resource Planning',
+    'WMS001',
+    'Warehouse Management System',
+    'Message Queue',
+    'Every 5 minutes',
+    'Order Data',
+    'Order',
+    '99.5%',
+    'Medium',
+    'active'
+);
