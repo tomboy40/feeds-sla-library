@@ -1,10 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  eslint: {
-    ignoreDuringBuilds: true,
+  experimental: {
+    serverActions: {
+      allowedOrigins: ['localhost:3000'],
+    },
   },
-  images: { unoptimized: true },
+  env: {
+    DLAS_API_INTERFACES_URL: process.env.DLAS_API_INTERFACES_URL,
+    DLAS_API_DETAILS_URL: process.env.DLAS_API_DETAILS_URL,
+  },
 };
 
 module.exports = nextConfig;

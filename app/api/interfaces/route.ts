@@ -1,45 +1,51 @@
 import { NextResponse } from 'next/server';
 import { getInterfacesByApp, syncInterfacesWithDLAS } from '@/lib/db/interfaces';
 import { fetchInterfacesFromDLAS } from '@/lib/api/dlas';
-import { Interface } from '@/types/interfaces';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const appId = searchParams.get('appId');
   const forceRefresh = searchParams.get('forceRefresh') === 'true';
 
-  if (!appId) {
+  console.log('API Request - appId:', appId, 'forceRefresh:', forceRefresh);
+
+  if (!appId || !/^[0-9]{3,8}$/.test(appId)) {
     return NextResponse.json(
-      { error: 'Application ID is required' }, 
+      { error: 'Valid application ID (3-8 digits) is required' }, 
       { status: 400 }
     );
   }
 
   try {
-    let interfaces: Interface[];
+    let interfaces;
 
     if (forceRefresh) {
-      // Force refresh: fetch from DLAS and sync with DB
+      console.log('Force refreshing interfaces from DLAS');
       const dlasInterfaces = await fetchInterfacesFromDLAS(appId);
+      console.log('DLAS Interfaces before sync:', dlasInterfaces);
       await syncInterfacesWithDLAS(appId, dlasInterfaces);
       interfaces = await getInterfacesByApp(appId);
+      console.log('Interfaces after sync:', interfaces);
     } else {
-      // Try to get from DB first
       interfaces = await getInterfacesByApp(appId);
+      console.log('Initial DB interfaces:', interfaces);
       
       if (interfaces.length === 0) {
-        // If not in DB, fetch from DLAS and sync
+        console.log('No interfaces in DB, fetching from DLAS');
         const dlasInterfaces = await fetchInterfacesFromDLAS(appId);
+        console.log('DLAS Interfaces before sync:', dlasInterfaces);
         await syncInterfacesWithDLAS(appId, dlasInterfaces);
         interfaces = await getInterfacesByApp(appId);
+        console.log('Interfaces after sync:', interfaces);
       }
     }
 
+    console.log('Final interfaces to return:', interfaces);
     return NextResponse.json(interfaces);
   } catch (error) {
     console.error('Error processing request:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch interfaces' },
+      { error: error instanceof Error ? error.message : 'Failed to fetch interfaces' },
       { status: 500 }
     );
   }
