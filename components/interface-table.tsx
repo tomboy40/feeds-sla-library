@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 
 interface InterfaceTableProps {
   searchQuery: string;
@@ -44,6 +45,7 @@ export default function InterfaceTable({
   const [editingInterface, setEditingInterface] = useState<Interface | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState<{ completed: number; total: number } | null>(null);
 
   const setLoadingState = useCallback((loading: boolean) => {
     setIsLoading(loading);
@@ -239,9 +241,18 @@ export default function InterfaceTable({
     if (!selectedAppId) return;
     
     setIsSyncing(true);
+    setLoadingProgress(null);
     setErrorState(null);
     try {
-      const response = await fetch(`/api/interfaces?appId=${selectedAppId}&forceRefresh=true`);
+      const response = await fetch(
+        `/api/interfaces?appId=${selectedAppId}&forceRefresh=true`, 
+        {
+          headers: {
+            'Accept': 'text/event-stream',
+          }
+        }
+      );
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to sync with DLAS');
@@ -265,14 +276,25 @@ export default function InterfaceTable({
       });
     } finally {
       setIsSyncing(false);
+      setLoadingProgress(null);
     }
   };
 
-  // Loading message component
+  // Loading message component with progress
   const LoadingMessage = ({ message }: { message: string }) => (
-    <div className="flex items-center justify-center py-8 text-muted-foreground">
-      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-      <span>{message}</span>
+    <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+      <div className="flex items-center mb-4">
+        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+        <span>{message}</span>
+      </div>
+      {loadingProgress && (
+        <div className="w-full max-w-xs space-y-2">
+          <Progress value={(loadingProgress.completed / loadingProgress.total) * 100} />
+          <p className="text-xs text-center">
+            Loading interfaces: {loadingProgress.completed} of {loadingProgress.total}
+          </p>
+        </div>
+      )}
     </div>
   );
 

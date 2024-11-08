@@ -4,11 +4,11 @@ FROM node:18-alpine3.17 AS base
 # Install dependencies only when needed
 FROM base AS deps
 # Add build dependencies
-RUN apk add --no-cache \
-    libc6-compat \
-    python3 \
-    make \
-    g++
+# RUN apk add --no-cache \
+#     libc6-compat \
+#     python3 \
+#     make \
+#     g++
 
 WORKDIR /app
 

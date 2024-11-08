@@ -7,8 +7,6 @@ export async function GET(request: Request) {
   const appId = searchParams.get('appId');
   const forceRefresh = searchParams.get('forceRefresh') === 'true';
 
-  console.log('API Request - appId:', appId, 'forceRefresh:', forceRefresh);
-
   if (!appId || !/^[0-9]{3,8}$/.test(appId)) {
     return NextResponse.json(
       { error: 'Valid application ID (3-8 digits) is required' }, 
@@ -20,27 +18,29 @@ export async function GET(request: Request) {
     let interfaces;
 
     if (forceRefresh) {
-      console.log('Force refreshing interfaces from DLAS');
-      const dlasInterfaces = await fetchInterfacesFromDLAS(appId);
-      console.log('DLAS Interfaces before sync:', dlasInterfaces);
+      const dlasInterfaces = await fetchInterfacesFromDLAS(
+        appId,
+        (completed, total) => {
+          console.log(`Progress: ${completed}/${total}`);
+        }
+      );
       await syncInterfacesWithDLAS(appId, dlasInterfaces);
       interfaces = await getInterfacesByApp(appId);
-      console.log('Interfaces after sync:', interfaces);
     } else {
       interfaces = await getInterfacesByApp(appId);
-      console.log('Initial DB interfaces:', interfaces);
       
       if (interfaces.length === 0) {
-        console.log('No interfaces in DB, fetching from DLAS');
-        const dlasInterfaces = await fetchInterfacesFromDLAS(appId);
-        console.log('DLAS Interfaces before sync:', dlasInterfaces);
+        const dlasInterfaces = await fetchInterfacesFromDLAS(
+          appId,
+          (completed, total) => {
+            console.log(`Progress: ${completed}/${total}`);
+          }
+        );
         await syncInterfacesWithDLAS(appId, dlasInterfaces);
         interfaces = await getInterfacesByApp(appId);
-        console.log('Interfaces after sync:', interfaces);
       }
     }
 
-    console.log('Final interfaces to return:', interfaces);
     return NextResponse.json(interfaces);
   } catch (error) {
     console.error('Error processing request:', error);
