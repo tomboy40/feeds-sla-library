@@ -1,58 +1,51 @@
 export interface Interface {
   id: string;
-  name: string;
-  senderAppId: string;
-  senderAppName: string;
-  receiverAppId: string;
-  receiverAppName: string;
+  status: string;
+  direction: 'IN' | 'OUT';
+  eimInterfaceId: string | null;
+  interfaceName: string;
+  sendAppId: string;
+  sendAppName: string;
+  receivedAppId: string;
+  receivedAppName: string;
   transferType: string;
   frequency: string;
-  productType: string;
-  entity: string;
+  technology: string;
+  pattern: string;
   sla: string;
-  impact: 'High' | 'Medium' | 'Low';
-  status: 'active' | 'demised';
+  priority: 'High' | 'Medium' | 'Low';
+  interfaceStatus: 'active' | 'inactive';
+  remarks: string | null;
   updatedAt: Date;
 }
 
 export interface InterfaceUpdatePayload {
   sla?: string;
-  impact?: Interface['impact'];
+  priority?: Interface['priority'];
+  interfaceStatus?: Interface['interfaceStatus'];
+  remarks?: string;
 }
 
-export interface DLASInterfaceResponse {
-  data: {
-    id: string;
-    name: string;
-  }[];
-  links: {
-    source: string;
-    target: string;
-  }[];
-}
-
-export interface DLASInterfaceDetailsResponse {
+export interface DLASResponse {
+  appid: string;
+  dataDate: string;
   interface: {
-    interface_id: string;
-    interface_name: string;
-    senderappid: string;
-    senderappname: string;
-    receiverappid: string;
-    receiverappname: string;
-    transfertype: string;
-    frequency: string;
+    interface_dlas_logged: DLASInterface[];
+    interface_only_in_eim: DLASInterface[];
   };
-  gdc: {
-    primary_collibra_gdc: string;
-    secondary_collibra_gdc: string[];
-  }[];
-  business_context: {
-    le: string;
-    lob: string;
-    country: string;
-  }[];
-  product_type: {
-    primaryProductType: string[];
-    secondaryProductType: string[];
-  }[];
+}
+
+export interface DLASInterface {
+  Status: string;
+  Direction: string;
+  EIMInterfaceID: string | null;
+  InterfaceName: string;
+  SendAppID: string;
+  SendAppName: string;
+  ReceivedAppID: string;
+  ReceivedAppName: string;
+  TransferType: string;
+  Frequency: string;
+  Technology: string;
+  Pattern: string;
 }

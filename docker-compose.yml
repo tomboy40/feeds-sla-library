@@ -12,8 +12,7 @@ services:
       - DATABASE_URL=postgres://postgres:postgres@db:5432/sla_library
       - DATABASE_SSL=false
       - NODE_ENV=development
-      - DLAS_API_INTERFACES_URL=https://mocki.io/v1/6752ca8e-3167-4684-b056-d3cea70d2c68
-      - DLAS_API_DETAILS_URL=https://mocki.io/v1/783b6adf-2bcd-4ebd-93d5-aa9f5449b215
+      - DLAS_API_URL=https://mocki.io/v1/f69ed26a-da0f-4d30-8421-03e50e38b21c
     dns:
       - 8.8.8.8
       - 8.8.4.4

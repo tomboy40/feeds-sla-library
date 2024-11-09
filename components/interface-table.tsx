@@ -6,13 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Interface } from "@/types/interfaces";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
-import { Pencil, RefreshCw, FileDown } from "lucide-react";
+import { Pencil, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -23,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
 
 interface InterfaceTableProps {
   searchQuery: string;
@@ -120,7 +122,7 @@ export default function InterfaceTable({
     }
   }, [selectedAppId]);
 
-  const handleEdit = async (sla: string, impact: Interface['impact']) => {
+  const handleEdit = async (sla: string) => {
     if (!editingInterface) return;
 
     try {
@@ -129,7 +131,7 @@ export default function InterfaceTable({
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ sla, impact }),
+        body: JSON.stringify({ sla }),
       });
 
       if (!response.ok) {
@@ -142,7 +144,7 @@ export default function InterfaceTable({
       setInterfaces(prevInterfaces => 
         prevInterfaces.map(iface => 
           iface.id === editingInterface.id 
-            ? { ...iface, sla, impact, updatedAt: new Date() }
+            ? { ...iface, sla, updatedAt: new Date() }
             : iface
         )
       );
@@ -175,9 +177,9 @@ export default function InterfaceTable({
     const searchLower = searchQuery.toLowerCase();
     return (
       iface.id.toLowerCase().includes(searchLower) ||
-      iface.name.toLowerCase().includes(searchLower) ||
-      iface.senderAppName.toLowerCase().includes(searchLower) ||
-      iface.receiverAppName.toLowerCase().includes(searchLower) ||
+      iface.interfaceName.toLowerCase().includes(searchLower) ||
+      iface.sendAppName.toLowerCase().includes(searchLower) ||
+      iface.receivedAppName.toLowerCase().includes(searchLower) ||
       iface.transferType.toLowerCase().includes(searchLower) ||
       iface.frequency.toLowerCase().includes(searchLower)
     );
@@ -186,36 +188,89 @@ export default function InterfaceTable({
   // Edit Dialog Component
   const EditDialog = () => {
     const [sla, setSla] = useState(editingInterface?.sla || '');
-    const [impact, setImpact] = useState<Interface['impact']>(editingInterface?.impact || 'Medium');
+    const [priority, setPriority] = useState<Interface['priority']>(editingInterface?.priority || 'Medium');
+    const [remarks, setRemarks] = useState(editingInterface?.remarks || '');
 
     const handleClose = () => {
       setEditDialogOpen(false);
       setEditingInterface(null);
     };
 
+    const handleSave = async () => {
+      if (!editingInterface) return;
+      
+      try {
+        const response = await fetch(`/api/interfaces/${editingInterface.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            sla, 
+            priority, 
+            remarks 
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update interface');
+        }
+
+        const result = await response.json();
+
+        setInterfaces(prevInterfaces => 
+          prevInterfaces.map(iface => 
+            iface.id === editingInterface.id 
+              ? { ...iface, sla, priority, remarks, updatedAt: new Date() }
+              : iface
+          )
+        );
+
+        setEditDialogOpen(false);
+        setEditingInterface(null);
+
+        toast({
+          title: "Success",
+          description: "Interface updated successfully",
+        });
+      } catch (error) {
+        console.error('Update error:', error);
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to update interface",
+          variant: "destructive",
+        });
+      }
+    };
+
     return (
-      <DialogContent onInteractOutside={handleClose}>
+      <DialogContent onInteractOutside={handleClose} className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Edit Interface {editingInterface?.id}</DialogTitle>
+          <DialogTitle>Edit Interface Details</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
-            <label htmlFor="sla">SLA</label>
+            <label htmlFor="interfaceName" className="text-right">Interface Name</label>
+            <div className="col-span-3 font-medium">{editingInterface?.interfaceName}</div>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <label htmlFor="sla" className="text-right">SLA</label>
             <Input
               id="sla"
               value={sla}
               onChange={(e) => setSla(e.target.value)}
               className="col-span-3"
+              placeholder="Enter SLA target..."
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <label htmlFor="impact">Impact</label>
+            <label htmlFor="priority" className="text-right">Priority</label>
             <Select
-              value={impact}
-              onValueChange={(value: Interface['impact']) => setImpact(value)}
+              value={priority}
+              onValueChange={(value: Interface['priority']) => setPriority(value)}
             >
               <SelectTrigger className="col-span-3">
-                <SelectValue placeholder="Select impact level" />
+                <SelectValue placeholder="Select priority level" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="High">High</SelectItem>
@@ -224,15 +279,26 @@ export default function InterfaceTable({
               </SelectContent>
             </Select>
           </div>
+          <div className="grid grid-cols-4 items-start gap-4">
+            <label htmlFor="remarks" className="text-right pt-2">Remarks</label>
+            <Textarea
+              id="remarks"
+              value={remarks || ''}
+              onChange={(e) => setRemarks(e.target.value)}
+              className="col-span-3"
+              placeholder="Enter interface remarks..."
+              rows={4}
+            />
+          </div>
         </div>
-        <div className="flex justify-end gap-3">
+        <DialogFooter>
           <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>
-          <Button onClick={() => handleEdit(sla, impact)}>
+          <Button onClick={handleSave}>
             Save Changes
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     );
   };
@@ -323,55 +389,68 @@ export default function InterfaceTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Sender</TableHead>
-              <TableHead>Receiver</TableHead>
+              <TableHead>Interface ID</TableHead>
+              <TableHead>Interface Name</TableHead>
+              <TableHead>Send App ID</TableHead>
+              <TableHead>Send App Name</TableHead>
+              <TableHead>Receive App Name</TableHead>
               <TableHead>Transfer Type</TableHead>
               <TableHead>Frequency</TableHead>
-              <TableHead>Product Type</TableHead>
-              <TableHead>Entity</TableHead>
+              <TableHead>Pattern</TableHead>
+              <TableHead>Technology</TableHead>
+              <TableHead>Interface Status</TableHead>
+              <TableHead>Priority</TableHead>
               <TableHead>SLA</TableHead>
-              <TableHead>Impact</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead>Remarks</TableHead>
+              <TableHead className="w-[50px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={12}>
+                <TableCell colSpan={14}>
                   <LoadingMessage message="Loading interfaces..." />
                 </TableCell>
               </TableRow>
             ) : isSyncing ? (
               <TableRow>
-                <TableCell colSpan={12}>
+                <TableCell colSpan={14}>
                   <LoadingMessage message="Retrieving latest interfaces from DLAS..." />
                 </TableCell>
               </TableRow>
             ) : interfaces.length > 0 ? (
               filteredInterfaces.map((iface) => (
                 <TableRow key={iface.id}>
-                  <TableCell className="font-mono text-sm">{iface.id}</TableCell>
-                  <TableCell>{iface.name}</TableCell>
-                  <TableCell>{iface.senderAppName}</TableCell>
-                  <TableCell>{iface.receiverAppName}</TableCell>
+                  <TableCell className="font-mono text-sm">{iface.eimInterfaceId || '-'}</TableCell>
+                  <TableCell>{iface.interfaceName}</TableCell>
+                  <TableCell className="font-mono text-sm">{iface.sendAppId}</TableCell>
+                  <TableCell>{iface.sendAppName}</TableCell>
+                  <TableCell>{iface.receivedAppName}</TableCell>
                   <TableCell>{iface.transferType}</TableCell>
                   <TableCell>{iface.frequency}</TableCell>
-                  <TableCell>{iface.productType}</TableCell>
-                  <TableCell>{iface.entity}</TableCell>
+                  <TableCell>{iface.pattern || '-'}</TableCell>
+                  <TableCell>{iface.technology || '-'}</TableCell>
+                  <TableCell>
+                    {iface.interfaceStatus === 'active' ? (
+                      <div className="flex items-center text-green-600" title="Active">
+                        <CheckCircle2 className="h-5 w-5" />
+                      </div>
+                    ) : (
+                      <div className="flex items-center text-gray-400" title="Inactive">
+                        <XCircle className="h-5 w-5" />
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={
+                      iface.priority === 'High' ? 'destructive' : 
+                      iface.priority === 'Medium' ? 'default' : 'secondary'
+                    }>
+                      {iface.priority}
+                    </Badge>
+                  </TableCell>
                   <TableCell>{iface.sla}</TableCell>
-                  <TableCell>
-                    <Badge variant={iface.impact === 'High' ? 'destructive' : 'secondary'}>
-                      {iface.impact}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={iface.status === 'active' ? 'default' : 'secondary'}>
-                      {iface.status}
-                    </Badge>
-                  </TableCell>
+                  <TableCell>{iface.remarks || '-'}</TableCell>
                   <TableCell>
                     <Button
                       variant="ghost"
@@ -388,7 +467,7 @@ export default function InterfaceTable({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={12}>
+                <TableCell colSpan={14}>
                   <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                     <p>No interfaces found</p>
                     {selectedAppId && (
