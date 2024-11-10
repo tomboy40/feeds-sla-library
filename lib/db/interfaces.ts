@@ -1,5 +1,6 @@
 import { Interface, InterfaceUpdatePayload } from '@/types/interfaces';
 import pool from './index';
+import { snakeCase } from 'lodash';
 
 export async function updateInterface(
   id: string,
@@ -31,36 +32,67 @@ export async function updateInterface(
   }
 }
 
-export async function getInterfacesByApp(appId: string): Promise<Interface[]> {
-  if (!appId) return [];
+interface QueryOptions {
+  page: number;
+  pageSize: number;
+  sortBy?: string;
+  sortDirection?: 'asc' | 'desc';
+}
+
+export async function getInterfacesByApp(
+  appId: string, 
+  options: QueryOptions
+): Promise<{ interfaces: Interface[]; total: number }> {
+  if (!appId) return { interfaces: [], total: 0 };
+  
+  const offset = (options.page - 1) * options.pageSize;
+  
+  // Build the ORDER BY clause
+  let orderBy = 'updated_at DESC';
+  if (options.sortBy) {
+    const column = snakeCase(options.sortBy); // Convert camelCase to snake_case
+    orderBy = `${column} ${options.sortDirection || 'ASC'}`;
+  }
   
   const query = `
+    WITH filtered_interfaces AS (
+      SELECT *
+      FROM interfaces 
+      WHERE (send_app_id = $1 OR received_app_id = $1)
+    )
     SELECT 
-      id,
-      status,
-      direction,
-      eim_interface_id as "eimInterfaceId",
-      interface_name as "interfaceName",
-      send_app_id as "sendAppId",
-      send_app_name as "sendAppName",
-      received_app_id as "receivedAppId",
-      received_app_name as "receivedAppName",
-      transfer_type as "transferType",
-      frequency,
-      technology,
-      pattern,
-      sla,
-      priority,
-      interface_status as "interfaceStatus",
-      remarks,
-      updated_at as "updatedAt"
-    FROM interfaces 
-    WHERE (send_app_id = $1 OR received_app_id = $1)
-    ORDER BY updated_at DESC
+      *,
+      COUNT(*) OVER() as full_count
+    FROM filtered_interfaces
+    ORDER BY ${orderBy}
+    LIMIT $2 OFFSET $3
   `;
   
-  const result = await pool.query(query, [appId]);
-  return result.rows;
+  const result = await pool.query(query, [appId, options.pageSize, offset]);
+  
+  const total = result.rows[0]?.full_count || 0;
+  const interfaces = result.rows.map(row => ({
+    id: row.id,
+    status: row.status,
+    direction: row.direction,
+    eimInterfaceId: row.eim_interface_id,
+    interfaceName: row.interface_name,
+    sendAppId: row.send_app_id,
+    sendAppName: row.send_app_name,
+    receivedAppId: row.received_app_id,
+    receivedAppName: row.received_app_name,
+    transferType: row.transfer_type,
+    frequency: row.frequency,
+    technology: row.technology,
+    pattern: row.pattern,
+    sla: row.sla,
+    priority: row.priority,
+    interfaceStatus: row.interface_status,
+    remarks: row.remarks,
+    updatedAt: row.updated_at
+  }));
+
+  return { interfaces, total };
 }
 
 export async function syncInterfacesWithDLAS(appId: string, interfaces: Interface[]): Promise<void> {

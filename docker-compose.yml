@@ -12,7 +12,7 @@ services:
       - DATABASE_URL=postgres://postgres:postgres@db:5432/sla_library
       - DATABASE_SSL=false
       - NODE_ENV=development
-      - DLAS_API_URL=https://mocki.io/v1/f69ed26a-da0f-4d30-8421-03e50e38b21c
+      - DLAS_API_URL=https://mocki.io/v1/710fda4c-6a61-46bd-9381-35e2ddb7537c
     dns:
       - 8.8.8.8
       - 8.8.4.4
@@ -35,7 +35,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s

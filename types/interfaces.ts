@@ -38,8 +38,9 @@ export interface DLASResponse {
 export interface DLASInterface {
   Status: string;
   Direction: string;
-  EIMInterfaceID: string | null;
-  InterfaceName: string;
+  EIMInterfaceID: string;
+  InterfaceName?: string;
+  EIMInterfaceName?: string;
   SendAppID: string;
   SendAppName: string;
   ReceivedAppID: string;
